@@ -1,4 +1,15 @@
+ifeq ($(OS),Windows_NT)
+	# NOTE: for this to work, docker-related commands need to have a pwsh equivalent alias
+	SHELL := pwsh.exe
+	.SHELLFLAGS := -Command
+else
+	SHELL := /bin/sh
+endif
+
 .PHONY: default update check-fmt help build docker corpora fmt clippy clean clean-all test test-debug test-hfuzz test-afl test-libfuzzer test-nim-libfuzzer test-all
+
+# NOTE: this works for windows too!
+WORKSPACE_DIR := $(realpath workspace)
 
 #
 # User utils
@@ -82,16 +93,16 @@ lighthouse:
 	-t eth2fuzz_lighthouse \
 	. \
 	$(CACHE)
-	@echo 'USAGE: docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_lighthouse list'
+	@echo 'USAGE: docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lighthouse list'
 
 ## Fuzz all lighthouse targets for 1 hour each
 fuzz-lighthouse: lighthouse
-	docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_lighthouse continuously -q lighthouse -t 3600 -n 1
+	docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lighthouse continuously -q lighthouse -t 3600 -n 1
 
 ## Try to run each target for 1 sec
 test-lighthouse:
-	for i in $(shell docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_lighthouse list); do \
-		docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_lighthouse target $$i -t 1; \
+	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lighthouse list); do \
+		docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lighthouse target $$i -t 1; \
 	done
 
 ## clean compiled fuzzing targets
@@ -115,16 +126,16 @@ lodestar:
 	-t eth2fuzz_lodestar \
 	. \
 	$(CACHE)
-	@echo 'USAGE: docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_lodestar list'
+	@echo 'USAGE: docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lodestar list'
 
 ## Fuzz all lodestar targets for 1 hour each
 fuzz-lodestar: lodestar
-	docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_lodestar continuously -q lodestar -t 3600
+	docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lodestar continuously -q lodestar -t 3600
 
 ## Try to run each target for 1 sec
 test-lodestar:
-	for i in $(shell docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_lodestar list); do \
-		docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_lodestar target $$i -t 1; test $$? -eq 1; \
+	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lodestar list); do \
+		docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lodestar target $$i -t 1; test $$? -eq 1; \
 	done
 
 ## Nothing to clean with lodestar since there
@@ -143,21 +154,21 @@ nimbus:
 	-t eth2fuzz_nimbus \
 	. \
 	$(CACHE)
-	@echo 'USAGE: docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_nimbus list'
+	@echo 'USAGE: docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_nimbus list'
 
 ## Fuzz all nimbus targets for 1 hour each
 fuzz-nimbus: nimbus
-	docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_nimbus continuously -q nimbus -t 3600
+	docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_nimbus continuously -q nimbus -t 3600
 
 ## Try to run each target for 1 sec
 test-nimbus:
-	for i in $(shell docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_nimbus list); do \
-		docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_nimbus target $$i -t 1; \
+	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_nimbus list); do \
+		docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_nimbus target $$i -t 1; \
 	done
 
 ## clean compiled fuzzing targets
 clean-nimbus:
-	for i in $(shell docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_nimbus list); do \
+	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_nimbus list); do \
 		rm -rf workspace/nimlibfuzzer/$$i; \
 	done
 
@@ -173,16 +184,16 @@ prysm:
 	-t eth2fuzz_prysm \
 	. \
 	$(CACHE)
-	@echo 'USAGE: docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_prysm list'
+	@echo 'USAGE: docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_prysm list'
 
 ## Fuzz all prysm targets for 1 hour each
 fuzz-prysm: prysm
-	docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_prysm continuously -q prysm -t 3600
+	docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_prysm continuously -q prysm -t 3600
 
 ## Try to run each target for 1 sec
 test-prysm:
-	for i in $(shell docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_prysm list); do \
-		docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_prysm target $$i -t 1; \
+	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_prysm list); do \
+		docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_prysm target $$i -t 1; \
 	done
 
 ## clean compiled fuzzing targets
@@ -202,16 +213,16 @@ teku:
 	-t eth2fuzz_teku \
 	. \
 	$(CACHE)
-	@echo 'USAGE: docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_teku list'
+	@echo 'USAGE: docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_teku list'
 
 ## Fuzz all teku targets for 1 hour each
 fuzz-teku: teku
-	docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_teku continuously -q teku -t 3600
+	docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_teku continuously -q teku -t 3600
 
 ## Try to run each target for 1 sec
 test-teku:
-	for i in $(shell docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_teku list); do \
-		docker run -v `pwd`/workspace:/eth2fuzz/workspace eth2fuzz_teku target $$i -t 1; test $$? -eq 1; \
+	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_teku list); do \
+		docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_teku target $$i -t 1; test $$? -eq 1; \
 	done
 
 ## clean compiled fuzzing targets
