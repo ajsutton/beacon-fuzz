@@ -2,8 +2,10 @@ ifeq ($(OS),Windows_NT)
 	# NOTE: for this to work, docker-related commands need to have a pwsh equivalent alias
 	SHELL := pwsh.exe
 	.SHELLFLAGS := -Command
+	BUILD_ENV :=
 else
 	SHELL := /bin/sh
+	BUILD_ENV := DOCKER_BUILDKIT=1
 endif
 
 .PHONY: default update check-fmt help build docker corpora fmt clippy clean clean-all test test-debug test-hfuzz test-afl test-libfuzzer test-nim-libfuzzer test-all
@@ -88,7 +90,7 @@ clean-all: clean clean-lighthouse clean-nimbus clean-prysm
 
 ## Fuzzing of lighthouse using docker.
 lighthouse:
-	DOCKER_BUILDKIT=1 docker build \
+	$(BUILD_ENV) docker build \
 	--file docker/lighthouse.Dockerfile \
 	-t eth2fuzz_lighthouse \
 	. \
@@ -121,7 +123,7 @@ clean-lighthouse:
 
 ## Fuzzing of lodestar using docker.
 lodestar:
-	DOCKER_BUILDKIT=1 docker build \
+	$(BUILD_ENV) docker build \
 	--file docker/lodestar.Dockerfile \
 	-t eth2fuzz_lodestar \
 	. \
@@ -149,7 +151,7 @@ clean-lodestar:
 
 ## Fuzzing of nim-beacon-chain using docker.
 nimbus:
-	DOCKER_BUILDKIT=1 docker build \
+	$(BUILD_ENV) docker build \
 	--file docker/nimbus.Dockerfile \
 	-t eth2fuzz_nimbus \
 	. \
@@ -179,7 +181,7 @@ clean-nimbus:
 
 ## Fuzzing of prysm using docker.
 prysm:
-	DOCKER_BUILDKIT=1 docker build \
+	$(BUILD_ENV) docker build \
 	--file docker/prysm.Dockerfile \
 	-t eth2fuzz_prysm \
 	. \
@@ -208,7 +210,7 @@ clean-prysm:
 
 ## Fuzzing of teku using docker.
 teku:
-	DOCKER_BUILDKIT=1 docker build \
+	$(BUILD_ENV) docker build \
 	--file docker/teku.Dockerfile \
 	-t eth2fuzz_teku \
 	. \
