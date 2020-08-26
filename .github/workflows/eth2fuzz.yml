@@ -119,15 +119,3 @@ jobs:
         run: cd eth2fuzz && make teku
       - name: Run target
         run: cd eth2fuzz && make test-teku
-
-  # Try building on windows
-  build-docker-windows:
-    name: Running docker Windows and Tests
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v2
-      # Might need to choco install make
-      - name: Build Docker Windows
-        run: cd eth2fuzz && make docker-all
-      - name: Run target
-        run: cd eth2fuzz && make test-all
