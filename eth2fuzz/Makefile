@@ -1,14 +1,14 @@
+# Main Makefile designed for multi-platform support for sh and Windows pwsh
+# Helps provide docker commands
+
 ifeq ($(OS),Windows_NT)
 	# NOTE: for this to work, docker-related commands need to have a pwsh equivalent alias
 	SHELL := pwsh.exe
 	.SHELLFLAGS := -Command
 	BUILD_ENV :=
-	n := \
 else
 	SHELL := /bin/sh
 	BUILD_ENV := DOCKER_BUILDKIT=1
-	n := `
-	#` Nothing: this comment just helps with syntax highlighting a standalone backtick
 endif
 
 .PHONY: check-fmt help docker corpora fmt clippy clean clean-all
@@ -72,7 +72,7 @@ docker-all: lighthouse lodestar nimbus prysm teku
 fuzz-all: fuzz-lighthouse fuzz-lodestar fuzz-nimbus fuzz-prysm fuzz-teku
 
 # Clean all (eth2fuzz && compiled fuzz target harnesses).
-clean: clean-lighthouse clean-nimbus clean-prysm
+clean: $(clean_clients)
 	rm -rf workspace/debug/target
 	# clean js - not needed
 	# clean java libfuzzer - TODO
@@ -83,23 +83,21 @@ clean: clean-lighthouse clean-nimbus clean-prysm
 #
 
 ## Fuzzing of lighthouse using docker.
-lighthouse:
-	$(BUILD_ENV) docker build $(n)
-	--file docker/lighthouse.Dockerfile $(n)
-	-t eth2fuzz_lighthouse $(n)
-	. $(n)
+#
+# Note: we define the command outside of the recipe to avoid passing the \ to the shell (not handled nicely in pwsh)
+# See https://www.gnu.org/software/make/manual/html_node/Splitting-Recipe-Lines.html#Splitting-Recipe-Lines
+lighthouse: build_cmd = $(BUILD_ENV) docker build \
+	--file docker/lighthouse.Dockerfile \
+	-t eth2fuzz_lighthouse \
+	. \
 	$(CACHE)
+lighthouse:
+	$(build_cmd)
 	@echo 'USAGE: docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lighthouse list'
 
 ## Fuzz all lighthouse targets for 1 hour each
 fuzz-lighthouse: lighthouse
 	docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lighthouse continuously -q lighthouse -t 3600 -n 1
-
-## Try to run each target for 1 sec
-test-lighthouse: lighthouse
-	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lighthouse list); do $(n)
-		docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lighthouse target $$i -t 1; $(n)
-	done
 
 ## clean compiled fuzzing targets
 clean-lighthouse:
@@ -116,23 +114,18 @@ clean-lighthouse:
 #
 
 ## Fuzzing of lodestar using docker.
-lodestar:
-	$(BUILD_ENV) docker build $(n)
-	--file docker/lodestar.Dockerfile $(n)
-	-t eth2fuzz_lodestar $(n)
-	. $(n)
+lodestar: build_cmd = $(BUILD_ENV) docker build \
+	--file docker/lodestar.Dockerfile \
+	-t eth2fuzz_lodestar \
+	. \
 	$(CACHE)
+lodestar:
+	$(build_cmd)
 	@echo 'USAGE: docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lodestar list'
 
 ## Fuzz all lodestar targets for 1 hour each
 fuzz-lodestar: lodestar
 	docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lodestar continuously -q lodestar -t 3600
-
-## Try to run each target for 1 sec
-test-lodestar:
-	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lodestar list); do $(n)
-		docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lodestar target $$i -t 1; test $$? -eq 1; $(n)
-	done
 
 ## Nothing to clean with lodestar since there
 ## is not compiled fuzzing targets
@@ -144,28 +137,23 @@ clean-lodestar:
 #
 
 ## Fuzzing of nim-beacon-chain using docker.
-nimbus:
-	$(BUILD_ENV) docker build $(n)
-	--file docker/nimbus.Dockerfile $(n)
-	-t eth2fuzz_nimbus $(n)
-	. $(n)
+nimbus: build_cmd = $(BUILD_ENV) docker build \
+	--file docker/nimbus.Dockerfile \
+	-t eth2fuzz_nimbus \
+	. \
 	$(CACHE)
+nimbus:
+	$(build_cmd)
 	@echo 'USAGE: docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_nimbus list'
 
 ## Fuzz all nimbus targets for 1 hour each
 fuzz-nimbus: nimbus
 	docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_nimbus continuously -q nimbus -t 3600
 
-## Try to run each target for 1 sec
-test-nimbus:
-	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_nimbus list); do $(n)
-		docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_nimbus target $$i -t 1; $(n)
-	done
-
 ## clean compiled fuzzing targets
 clean-nimbus:
-	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_nimbus list); do $(n)
-		rm -rf workspace/nimlibfuzzer/$$i; $(n)
+	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_nimbus list); do \
+		rm -rf workspace/nimlibfuzzer/$$i; \
 	done
 
 #
@@ -174,23 +162,18 @@ clean-nimbus:
 #
 
 ## Fuzzing of prysm using docker.
-prysm:
-	$(BUILD_ENV) docker build $(n)
-	--file docker/prysm.Dockerfile $(n)
-	-t eth2fuzz_prysm $(n)
-	. $(n)
+prysm: build_cmd = $(BUILD_ENV) docker build \
+	--file docker/prysm.Dockerfile \
+	-t eth2fuzz_prysm \
+	. \
 	$(CACHE)
+prysm:
+	$(build_cmd)
 	@echo 'USAGE: docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_prysm list'
 
 ## Fuzz all prysm targets for 1 hour each
 fuzz-prysm: prysm
 	docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_prysm continuously -q prysm -t 3600
-
-## Try to run each target for 1 sec
-test-prysm:
-	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_prysm list); do $(n)
-		docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_prysm target $$i -t 1; $(n)
-	done
 
 ## clean compiled fuzzing targets
 clean-prysm:
@@ -203,28 +186,46 @@ clean-prysm:
 #
 
 ## Fuzzing of teku using docker.
-teku:
-	$(BUILD_ENV) docker build $(n)
-	--file docker/teku.Dockerfile $(n)
-	-t eth2fuzz_teku $(n)
-	. $(n)
+teku: build_cmd = $(BUILD_ENV) docker build \
+	--file docker/teku.Dockerfile \
+	-t eth2fuzz_teku \
+	. \
 	$(CACHE)
+teku:
+	$(build_cmd)
 	@echo 'USAGE: docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_teku list'
 
 ## Fuzz all teku targets for 1 hour each
 fuzz-teku: teku
 	docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_teku continuously -q teku -t 3600
 
-## Try to run each target for 1 sec
-test-teku:
-	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_teku list); do $(n)
-		docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_teku target $$i -t 1; test $$? -eq 1; $(n)
-	done
-
 ## clean compiled fuzzing targets
 clean-teku:
 	# clean javafuzz
 	rm -rf workspace/javafuzz/T*.class
+
+test-all: $(test_clients)
+
+# TODO depend on the build client? Wanna avoid rebuilding it unnecessarily
+ifeq ($(OS),Windows_NT)
+## Try to run each target for 1 sec
+# Note: we keep this outside of the recipe, so we can split up lines with \ without sending
+# the backslash to pwsh
+# TODO break if test fails?
+$(test_clients): test_cmd = "$(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_$* list)".Split() | \
+	ForEach-Object -Process { docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_$* target $$_ -t 3 }
+$(test_clients): test-%:
+	@echo "Windows tests"
+	$(test_cmd)
+else
+## Try to run each target for a minimal time
+# (prob wanna run it until at least INITed?
+# TODO break if test fails?
+$(test_clients): test-%:
+	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_$* list); do \
+		docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_$* target $$i -t 3; test $$? -eq 1; \
+	done
+endif
 
 #
 # Developer utils
