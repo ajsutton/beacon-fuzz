@@ -8,66 +8,58 @@ else
 	SHELL := /bin/sh
 	BUILD_ENV := DOCKER_BUILDKIT=1
 	n := `
+	#` Nothing: this comment just helps with syntax highlighting a standalone backtick
 endif
 
-.PHONY: default update check-fmt help build docker corpora fmt clippy clean clean-all test test-debug test-hfuzz test-afl test-libfuzzer test-nim-libfuzzer test-all
+.PHONY: check-fmt help docker corpora fmt clippy clean clean-all
+
+.DEFAULT_GOAL: docker-all
 
 # NOTE: this works for windows too!
 WORKSPACE_DIR := $(realpath workspace)
 
-#
-# User utils
-#
+clients := lighthouse nimbus prysm teku lodestar
+test_clients := $(addprefix test-,$(clients))
+clean_clients := $(addprefix clean-,$(clients))
 
-default: build
 
 help:
 	@echo 'Management commands for eth2fuzz'
 	@echo
-	@echo 'Usage:'
-	@echo '    make build 										Compile the project.'
-	@echo '    make corpora		 								Create an initial corpora.'
+	@echo 'Available clients:'
+	@echo '    lighthouse'
+	@echo '    lodestar'
+	@echo '    nimbus'
+	@echo '    prysm'
+	@echo '    teku'
 	@echo
-	@echo '    make fmt 										Run Rust fmt.'
-	@echo '    make clean 										Clean only eth2fuzz binary.'
-	@echo '    make clean-all 									Clean all (eth2fuzz && compiled fuzz target harnesses).'
+	@echo 'Basic Usage:'
 	@echo
-	@echo '    make test		 								Simple test to check if eth2fuzz is working.'
-	@echo '    make test-debug		 							Test running a simple wasm to a debugging tool.'
-	@echo '    make test-{libfuzzer, hfuzz, afl}				Test one fuzzing harness over choosen fuzzer.'
-	@echo '    make test-all		 							Test one fuzzing harness over all fuzzers.'
-	@echo '    make test-continuously-{libfuzzer, hfuzz, afl}	Test all fuzzing harness over choosen fuzzer.'
+	@echo '    make fuzz-all                                    Build and fuzz all targets for all clients, 1 hr each.'
+	@echo '    make fuzz-[CLIENT]                               Fuzz all targets for CLIENT, 1 hr each.'
+	@echo '                                                     e.g. `make fuzz-lighthouse`'
+	@echo '    make or make docker-all                          Build all docker images.'
+	@echo '    make CLIENT                                      Build all docker image for CLIENT.'
+	@echo '                                                     e.g. `make prysm`'
 	@echo
-	@echo 'TODO - add other commands'
+	@echo '    make clean                                       Clean all (eth2fuzz && compiled fuzz target harnesses).'
+	@echo '    make clean-[CLIENT]                              Clean build artifacts for a single client CLIENT.'
+	@echo
+	@echo 'Dev helpers:'
+	@echo '    make test-all                                    Fuzz all targets for all clients, 1 s each.'
+	@echo '    make test-[CLIENT]                               Fuzz all targets for CLIENT, 1 s each.'
+	@echo
+	@echo '    make corpora                                     Create initial corpora from Eth2 Spec tests.'
+	@echo
+	@echo '    make fmt                                         Run Rust fmt.'
+	@echo
+	@echo
 
-
-# Build the project locally
-build:
-	cargo +nightly build --release --out-dir=. -Z unstable-options
 
 # Create an initial corpora
 corpora:
 	cd workspace/corpora/ && ./extract_corpora_from_spectests.sh
 
-#
-# Developer utils
-#
-
-# Run Rust fmt to make code cleaner
-fmt:
-	cargo fmt --all
-
-# Run Rust clippy to make code cleaner
-clippy:
-	cargo clippy --all
-
-#
-# Eth2fuzz
-#
-
-# Clean only eth2fuzz target
-clean:
-	rm -rf target/
 
 #
 # ALL CLIENTS
@@ -80,7 +72,7 @@ docker-all: lighthouse lodestar nimbus prysm teku
 fuzz-all: fuzz-lighthouse fuzz-lodestar fuzz-nimbus fuzz-prysm fuzz-teku
 
 # Clean all (eth2fuzz && compiled fuzz target harnesses).
-clean-all: clean clean-lighthouse clean-nimbus clean-prysm
+clean: clean-lighthouse clean-nimbus clean-prysm
 	rm -rf workspace/debug/target
 	# clean js - not needed
 	# clean java libfuzzer - TODO
@@ -104,7 +96,7 @@ fuzz-lighthouse: lighthouse
 	docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lighthouse continuously -q lighthouse -t 3600 -n 1
 
 ## Try to run each target for 1 sec
-test-lighthouse:
+test-lighthouse: lighthouse
 	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lighthouse list); do $(n)
 		docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_lighthouse target $$i -t 1; $(n)
 	done
@@ -235,60 +227,13 @@ clean-teku:
 	rm -rf workspace/javafuzz/T*.class
 
 #
-# Testing utils
+# Developer utils
 #
 
-# Simple test to check if eth2fuzz is working.
-test: build
-	./eth2fuzz list
+# Run Rust fmt to make code cleaner
+fmt:
+	cargo fmt --all
 
-# Test running a simple wasm to a debugging tool.
-test-debug: build
-	./eth2fuzz debug lighthouse_attestation
-	./workspace/debug/target/debug/debug_lighthouse_attestation $(n)
-		workspace/corpora/beaconstate/004a360e8f5b1d4a32c158c2c688fc4e.ssz $(n)
-		workspace/corpora/attestation/05db7ea93a4ee2467a1a04f3a0fa8f38.ssz
-
-# Run one fuzzing harness over honggfuzz for 2s
-test-hfuzz: build
-	./eth2fuzz target lighthouse_attestation -t 2
-
-# Run one fuzzing harness over afl for 2s
-test-afl: build
-	./eth2fuzz target lighthouse_attestation --fuzzer afl -t 2
-
-# Run one fuzzing harness over libfuzzer for 2s
-test-libfuzzer: build
-	./eth2fuzz target lighthouse_attestation --fuzzer libfuzzer -t 2
-
-# Run one fuzzing harness over nim-libfuzzer for 2s
-test-nim-libfuzzer: build
-	./eth2fuzz target nimbus_enr --fuzzer NimLibfuzzer -t 2
-
-# Run one fuzzing harness over all fuzzer
-test-all: test-hfuzz test-afl test-libfuzzer test-nim-libfuzzer
-
-# Run all fuzzing harness over honggfuzz
-test-continuously-hfuzz: build
-	./eth2fuzz continuously -t 2 --fuzzer honggfuzz
-
-# Run all fuzzing harness over libfuzzer
-test-continuously-libfuzzer: build
-	./eth2fuzz continuously -t 2 --fuzzer libfuzzer
-
-# Run all fuzzing harness over afl
-test-continuously-afl: build
-	./eth2fuzz continuously -t 2 --fuzzer afl
-
-
-#
-# CI utils
-#
-
-# Check code style quickly by running `rustfmt` over all code
-check-fmt:
-	cargo fmt --all -- --check
-
-# Check code quality by running `clippy` over all code
-check-clippy:
+# Run Rust clippy to make code cleaner
+clippy:
 	cargo clippy --all
