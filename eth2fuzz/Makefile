@@ -25,35 +25,35 @@ clean_clients := $(addprefix clean-,$(clients))
 
 help:
 	@echo 'Management commands for eth2fuzz'
-	@echo
+	@echo ''
 	@echo 'Available clients:'
 	@echo '    lighthouse'
 	@echo '    lodestar'
 	@echo '    nimbus'
 	@echo '    prysm'
 	@echo '    teku'
-	@echo
+	@echo ''
 	@echo 'Basic Usage:'
-	@echo
+	@echo ''
 	@echo '    make fuzz-all                                    Build and fuzz all targets for all clients, 1 hr each.'
 	@echo '    make fuzz-[CLIENT]                               Fuzz all targets for CLIENT, 1 hr each.'
 	@echo '                                                     e.g. `make fuzz-lighthouse`'
 	@echo '    make or make docker-all                          Build all docker images.'
 	@echo '    make CLIENT                                      Build all docker image for CLIENT.'
 	@echo '                                                     e.g. `make prysm`'
-	@echo
+	@echo ''
 	@echo '    make clean                                       Clean all (eth2fuzz && compiled fuzz target harnesses).'
 	@echo '    make clean-[CLIENT]                              Clean build artifacts for a single client CLIENT.'
-	@echo
+	@echo ''
 	@echo 'Dev helpers:'
 	@echo '    make test-all                                    Fuzz all targets for all clients, 1 s each.'
 	@echo '    make test-[CLIENT]                               Fuzz all targets for CLIENT, 1 s each.'
-	@echo
+	@echo ''
 	@echo '    make corpora                                     Create initial corpora from Eth2 Spec tests.'
-	@echo
+	@echo ''
 	@echo '    make fmt                                         Run Rust fmt.'
-	@echo
-	@echo
+	@echo ''
+	@echo ''
 
 
 # Create an initial corpora
