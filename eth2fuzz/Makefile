@@ -13,7 +13,7 @@ endif
 
 .PHONY: check-fmt help docker corpora fmt clippy clean clean-all
 
-.DEFAULT_GOAL: docker-all
+.DEFAULT_GOAL=docker-all
 
 # NOTE: this works for windows too!
 WORKSPACE_DIR := $(realpath workspace)
@@ -206,6 +206,12 @@ clean-teku:
 
 test-all: $(test_clients)
 
+test-lighthouse: exit_success=0
+test-prysm: exit_success=0
+test-nimbus: exit_success=0
+test-teku: exit_success=1
+test-lodestar: exit_success=1
+
 # TODO depend on the build client? Wanna avoid rebuilding it unnecessarily
 ifeq ($(OS),Windows_NT)
 ## Try to run each target for 1 sec
@@ -213,7 +219,8 @@ ifeq ($(OS),Windows_NT)
 # the backslash to pwsh
 # TODO break if test fails?
 $(test_clients): test_cmd = "$(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_$* list)".Split() | \
-	ForEach-Object -Process { docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_$* target $$_ -t 3 }
+	ForEach-Object -Process { docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_$* target $$_ -t 2; \
+	if ($$LastexitCode -neq $(exit_success)) { exit 1 } }
 $(test_clients): test-%:
 	@echo "Windows tests"
 	$(test_cmd)
@@ -222,8 +229,10 @@ else
 # (prob wanna run it until at least INITed?
 # TODO break if test fails?
 $(test_clients): test-%:
+	@echo "Expecting exit status of $(exit_success)"
 	for i in $(shell docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_$* list); do \
-		docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_$* target $$i -t 3; test $$? -eq 1; \
+		docker run -v $(WORKSPACE_DIR):/eth2fuzz/workspace eth2fuzz_$* target $$i -t 2; \
+		test $$? -eq $(exit_success) || exit 1; \
 	done
 endif
 
