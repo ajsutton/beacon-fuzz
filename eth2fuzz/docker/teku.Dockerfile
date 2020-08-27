@@ -25,12 +25,13 @@ COPY . .
 # Build the CLI tool
 RUN make -f eth2fuzz.mk build
 
-#####################################
-############ prysm #################
+###################################
+############ teku #################
 
 FROM ubuntu:18.04
 
 ARG GIT_BRANCH="master"
+ARG TEKU_VERSION="0.12.4"
 ARG PRESET="preset_mainnet"
 
 # Update ubuntu
@@ -70,7 +71,7 @@ RUN apt-get update && \
 WORKDIR /eth2fuzz
 
 RUN git clone \
-	--branch "$GIT_BRANCH" \
+	--branch "$TEKU_VERSION" \
 	--depth 1 \
 	https://github.com/PegaSysEng/teku.git
 
